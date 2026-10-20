@@ -4,11 +4,9 @@ Kenya-focused carpooling demo for finding rides, publishing a route, and sharing
 
 ## Preview
 
-The live app is deployed with GitHub Pages at:
+GitHub Pages preview URL: https://danmulat.github.io/EcoRide/
 
-https://danmulat.github.io/EcoRide/
-
-The first deployment runs automatically after changes are pushed to `main`. Check the repository's **Actions** tab for deployment status.
+To activate the preview, open [Pages settings](https://github.com/danmulat/EcoRide/settings/pages) and select **GitHub Actions** under **Build and deployment**. Then rerun the failed deployment from the repository's **Actions** tab. Future pushes to `main` will deploy automatically.
 
 ## Run locally
 
