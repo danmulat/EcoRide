@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import {
   ArrowDownUp,
   ArrowLeftRight,
@@ -14,9 +14,14 @@ import {
   Leaf,
   MapPin,
   Menu,
+  Navigation,
+  PhoneCall,
   Plus,
+  Route,
   Search,
+  Share2,
   ShieldCheck,
+  Siren,
   SlidersHorizontal,
   Sparkles,
   Star,
@@ -41,7 +46,7 @@ type Ride = {
   color: string
 }
 
-type View = 'find' | 'trips' | 'impact' | 'profile'
+type View = 'find' | 'trips' | 'track' | 'impact' | 'profile'
 type DemoProfileId = 'yohanna' | 'lydia'
 
 const demoProfiles: Record<DemoProfileId, { name: string; initials: string; role: 'Driver' | 'Passenger'; color: string; car: string }> = {
@@ -59,9 +64,40 @@ const initialRides: Ride[] = [
 const navItems: { id: View; label: string; icon: typeof Compass }[] = [
   { id: 'find', label: 'Find a ride', icon: Compass },
   { id: 'trips', label: 'My trips', icon: CalendarDays },
+  { id: 'track', label: 'Live tracking', icon: Navigation },
   { id: 'impact', label: 'My impact', icon: Leaf },
   { id: 'profile', label: 'Profile', icon: UsersRound },
 ]
+
+const plates: Record<number, string> = { 1: 'KDA 482M', 2: 'KCY 317B', 3: 'KDE 905H', 4: 'KCT 226K' }
+const plateFor = (ride: Ride) => plates[ride.id] ?? 'KDG 118P'
+const minutesOf = (duration: string) => Number.parseInt(duration, 10) || 30
+const addMinutes = (time: string, minutes: number) => {
+  const [h, m] = time.split(':').map(Number)
+  const total = ((h || 0) * 60 + (m || 0) + minutes) % 1440
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
+}
+
+type TrackedTrip = { ride: Ride; isSample: boolean; progress: number; minutesLeft: number; kmLeft: number; plate: string; eta: string }
+
+/** Simulated vehicle progress (0–100) that advances every few seconds and loops. */
+function useTripProgress() {
+  const [progress, setProgress] = useState(38)
+  useEffect(() => {
+    const timer = window.setInterval(() => setProgress((current) => (current >= 100 ? 12 : Math.min(100, current + 3))), 3000)
+    return () => window.clearInterval(timer)
+  }, [])
+  return progress
+}
+
+/** Point along the quadratic route curve used by the mini maps. */
+const routePoint = (t: number, w: number, h: number) => {
+  const p0 = { x: w * 0.1, y: h * 0.78 }
+  const c = { x: w * 0.45, y: h * -0.15 }
+  const p1 = { x: w * 0.9, y: h * 0.3 }
+  const u = 1 - t
+  return { x: u * u * p0.x + 2 * u * t * c.x + t * t * p1.x, y: u * u * p0.y + 2 * u * t * c.y + t * t * p1.y, p0, c, p1 }
+}
 
 const formatKES = (amount: number) => `KES ${amount.toLocaleString('en-KE')}`
 const formatRideDate = (date: string) => /^\d{4}-\d{2}-\d{2}$/.test(date)
@@ -88,6 +124,25 @@ function App() {
   const rated = ratedProfiles[activeProfileId]
   const ratingTarget = activeProfile.role === 'Driver' ? 'passenger' : 'driver'
   const ratingProfile = demoProfiles[activeProfileId === 'lydia' ? 'yohanna' : 'lydia']
+  const progress = useTripProgress()
+
+  const trackedTrip: TrackedTrip = useMemo(() => {
+    const bookedRides = rides.filter((ride) => bookedIds.includes(ride.id))
+    const ownRide = activeProfile.role === 'Driver' ? rides.find((ride) => ride.driver === activeProfile.name) : undefined
+    const ride = ownRide ?? bookedRides.find((r) => acceptedRideIds.includes(r.id)) ?? bookedRides[0] ?? rides.find((r) => r.id === 1) ?? initialRides[0]
+    const isSample = !ownRide && bookedRides.length === 0
+    const total = minutesOf(ride.duration)
+    const minutesLeft = Math.max(0, Math.round(total * (1 - progress / 100)))
+    const kmLeft = Math.max(0, Math.round(total * 0.42 * (1 - progress / 100) * 10) / 10)
+    return { ride, isSample, progress, minutesLeft, kmLeft, plate: plateFor(ride), eta: addMinutes(ride.time, total) }
+  }, [acceptedRideIds, activeProfile, bookedIds, progress, rides])
+
+  const shareTrip = async () => {
+    const link = `${window.location.origin}${import.meta.env.BASE_URL}#track-${trackedTrip.ride.id}`
+    try { await navigator.clipboard.writeText(link) } catch { /* clipboard may be unavailable */ }
+    showToast('Live trip link copied, share it with someone you trust')
+  }
+  const triggerSos = () => showToast('SOS sent: trusted contacts alerted with your live location (demo)')
 
   const filteredRides = useMemo(() => {
     if (!searched) return rides
@@ -172,6 +227,7 @@ function App() {
   const pageTitle = {
     find: 'Find your next ride',
     trips: 'Your trips',
+    track: 'Live trip tracking',
     impact: 'Your impact',
     profile: 'Your profile',
   }[view]
@@ -180,7 +236,7 @@ function App() {
     <div className="app-shell">
       <aside className={`sidebar ${mobileNavOpen ? 'sidebar-open' : ''}`}>
         <a className="brand" href="#home" onClick={() => setView('find')} aria-label="EcoRide home">
-          <span className="brand-mark"><Leaf size={21} strokeWidth={2.5} /></span>
+          <img className="brand-logo" src={`${import.meta.env.BASE_URL}logo.png`} alt="" width={34} height={34} />
           <span>eco<span>ride</span></span>
         </a>
         <div className="sidebar-label">MENU</div>
@@ -222,7 +278,7 @@ function App() {
             <div>
               <div className="eyebrow">TUESDAY, 20 OCTOBER 2026 <span className="eyebrow-dot" /></div>
               <h1>{view === 'find' ? <>Good morning, {activeProfile.name}<span className="title-period">.</span></> : pageTitle}</h1>
-              <p>{view === 'find' ? 'A better way to get there starts here.' : view === 'trips' ? 'All the places you’re going, in one place.' : view === 'impact' ? 'Every shared seat adds up to a lighter journey.' : 'A little about the person behind the wheel.'}</p>
+              <p>{view === 'find' ? 'A better way to get there starts here.' : view === 'trips' ? 'All the places you’re going, in one place.' : view === 'track' ? 'Know where your ride is, every step of the way.' : view === 'impact' ? 'Every shared seat adds up to a lighter journey.' : 'A little about the person behind the wheel.'}</p>
             </div>
             {activeProfile.role === 'Driver' && <button className="button button-dark heading-action" onClick={() => setModal('offer')}><Plus size={17} /> Offer a ride</button>}
           </div>
@@ -241,6 +297,7 @@ function App() {
               </section>
               <aside className="right-column">
                 <ImpactCard onOpen={() => setView('impact')} />
+                <TrackingCard trip={trackedTrip} isDriver={activeProfile.role === 'Driver'} onOpen={() => setView('track')} onShare={shareTrip} onSos={triggerSos} />
                 <div className="road-card">
                   <img src="https://images.unsplash.com/photo-1511919884226-fd3cad34687c?auto=format&fit=crop&w=900&q=85" alt="A car ready for the road" />
                   <div className="road-card-overlay" />
@@ -252,6 +309,7 @@ function App() {
           )}
 
           {view === 'trips' && <TripsView rides={rides} bookedIds={bookedIds} acceptedRideIds={acceptedRideIds} profile={activeProfile} rated={rated} onAccept={acceptRideRequest} onRate={() => { setRating(0); setModal('rate') }} />}
+          {view === 'track' && <TrackingView trip={trackedTrip} isDriver={activeProfile.role === 'Driver'} onShare={shareTrip} onSos={triggerSos} onFind={() => setView('find')} />}
           {view === 'impact' && <ImpactView onFind={() => setView('find')} />}
           {view === 'profile' && <ProfileView profile={activeProfile} onTrips={() => setView('trips')} />}
         </div>
@@ -290,6 +348,104 @@ function RideCard({ ride, isBooked, canRequest, onBook, onSwitchProfile }: { rid
 
 function ImpactCard({ onOpen }: { onOpen: () => void }) {
   return <section className="impact-card"><div className="impact-card-top"><span className="impact-leaf"><Leaf size={17} /></span><span>YOUR SHARED IMPACT</span><button onClick={onOpen} aria-label="View impact details"><ArrowRight size={16} /></button></div><div className="impact-total">12.4 <span>kg</span></div><p>CO₂ avoided by sharing your rides</p><div className="impact-meter"><span /></div><div className="impact-card-bottom"><span><span className="meter-dot" /> 6 rides shared</span><span>THIS MONTH</span></div><div className="impact-divider" /><div className="impact-equivalent"><span className="tree-mark">✳</span><span>That’s like growing <strong>1 tree</strong> for a month</span></div></section>
+}
+
+const placeName = (place: string) => place.split(',')[0]
+
+function RouteMap({ progress, width, height, from, to, large = false }: { progress: number; width: number; height: number; from: string; to: string; large?: boolean }) {
+  const t = Math.min(1, Math.max(0, progress / 100))
+  const car = routePoint(t, width, height)
+  const { p0, c, p1 } = car
+  const path = `M ${p0.x} ${p0.y} Q ${c.x} ${c.y} ${p1.x} ${p1.y}`
+  // Travelled part of the curve, split at t with de Casteljau.
+  const q0 = { x: p0.x + (c.x - p0.x) * t, y: p0.y + (c.y - p0.y) * t }
+  const done = `M ${p0.x} ${p0.y} Q ${q0.x} ${q0.y} ${car.x} ${car.y}`
+  return (
+    <svg className={`track-map ${large ? 'track-map-large' : ''}`} viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`Vehicle ${Math.round(progress)}% of the way from ${placeName(from)} to ${placeName(to)}`}>
+      <g className="track-streets">
+        <path d={`M 0 ${height * 0.55} L ${width} ${height * 0.42}`} />
+        <path d={`M ${width * 0.3} 0 L ${width * 0.36} ${height}`} />
+        <path d={`M ${width * 0.68} 0 L ${width * 0.62} ${height}`} />
+      </g>
+      <path className="track-route" d={path} />
+      <path className="track-route-done" d={done} />
+      <circle className="track-origin" cx={p0.x} cy={p0.y} r={large ? 7 : 5} />
+      <g className="track-destination" transform={`translate(${p1.x} ${p1.y})`}>
+        <path d="M0 0 C -7 -9 -7 -16 0 -16 C 7 -16 7 -9 0 0 Z" transform={large ? 'scale(1.4)' : undefined} />
+      </g>
+      <g className="track-car" style={{ transform: `translate(${car.x}px, ${car.y}px)` }}>
+        <circle className="track-car-pulse" r={large ? 16 : 11} />
+        <circle className="track-car-dot" r={large ? 8 : 6} />
+      </g>
+      {large && <><text className="track-label" x={p0.x} y={p0.y + 22} textAnchor="start">{placeName(from)}</text><text className="track-label" x={p1.x} y={p1.y + 22} textAnchor="end">{placeName(to)}</text></>}
+    </svg>
+  )
+}
+
+function TrackingCard({ trip, isDriver, onOpen, onShare, onSos }: { trip: TrackedTrip; isDriver: boolean; onOpen: () => void; onShare: () => void; onSos: () => void }) {
+  const { ride } = trip
+  return (
+    <section className="impact-card tracking-card" aria-label="Live trip tracking">
+      <div className="impact-card-top"><span className="impact-leaf"><Navigation size={15} /></span><span>LIVE TRIP TRACKING</span><span className="live-pill"><span className="live-dot" /> {trip.isSample ? 'SAMPLE' : 'LIVE'}</span><button onClick={onOpen} aria-label="Open live tracking"><ArrowRight size={16} /></button></div>
+      <RouteMap progress={trip.progress} width={240} height={92} from={ride.from} to={ride.to} />
+      <div className="track-heading"><span>Heading to</span><strong>{ride.to}</strong></div>
+      <div className="track-eta"><div className="impact-total">{trip.minutesLeft} <span>min</span></div><div className="track-eta-side"><span>{trip.kmLeft} km left</span><span>Arrives ~{trip.eta}</span></div></div>
+      <div className="impact-meter"><span style={{ width: `${trip.progress}%` }} /></div>
+      <div className="impact-card-bottom"><span><span className="meter-dot" /> {placeName(ride.from)} → {placeName(ride.to)}</span><span>{Math.round(trip.progress)}% THERE</span></div>
+      <div className="impact-divider" />
+      <div className="track-vehicle"><CarFront size={14} /><span><strong>{ride.car}</strong> · {trip.plate} · {isDriver ? 'shared with your passengers' : ride.driver}</span><BadgeCheck size={14} className="track-verified" /></div>
+      <div className="track-actions"><button onClick={onShare}><Share2 size={13} /> Share trip</button><button className="track-sos" onClick={onSos}><Siren size={13} /> SOS</button></div>
+    </section>
+  )
+}
+
+function TrackingView({ trip, isDriver, onShare, onSos, onFind }: { trip: TrackedTrip; isDriver: boolean; onShare: () => void; onSos: () => void; onFind: () => void }) {
+  const { ride } = trip
+  const [deviationAlerts, setDeviationAlerts] = useState(true)
+  const arrived = trip.progress >= 100
+  const steps = [
+    { label: 'Picked up', detail: `${placeName(ride.from)} · ${ride.time}`, state: 'done' },
+    { label: arrived ? 'Route completed' : 'On the way', detail: arrived ? 'Stayed on the expected route' : `${trip.kmLeft} km to go · on expected route`, state: arrived ? 'done' : 'current' },
+    { label: arrived ? 'Arrived' : 'Arriving', detail: `${placeName(ride.to)} · ~${trip.eta}`, state: arrived ? 'done' : 'next' },
+  ]
+  return (
+    <div className="impact-page tracking-page">
+      <section className="impact-hero tracking-hero">
+        <div className="impact-hero-copy">
+          <div className="section-kicker">{trip.isSample ? 'SAMPLE TRIP · REQUEST A SEAT TO TRACK YOURS' : isDriver ? 'YOUR VEHICLE · SHARED WITH PASSENGERS' : 'YOUR RIDE · LIVE'}</div>
+          <h2>Heading to<br />{ride.to}</h2>
+          <p>{isDriver ? 'Passengers and their trusted contacts can follow this trip in real time.' : 'Follow your ride in real time and share it with people you trust, so someone always knows where you are.'}</p>
+          <div className="tracking-hero-actions"><button className="button button-light" onClick={onShare}><Share2 size={15} /> Share live trip</button><button className="button track-sos-large" onClick={onSos}><Siren size={15} /> SOS</button></div>
+        </div>
+        <div className="impact-hero-stat tracking-hero-stat">
+          <RouteMap progress={trip.progress} width={320} height={140} from={ride.from} to={ride.to} large />
+          <div className="hero-stat-divider" />
+          <div className="impact-hero-details"><div><strong>{trip.minutesLeft} min</strong><span>time left</span></div><div><strong>{trip.kmLeft} km</strong><span>distance left</span></div><div><strong>~{trip.eta}</strong><span>arrival</span></div></div>
+        </div>
+      </section>
+      <div className="impact-lower">
+        <section className="impact-breakdown">
+          <div className="section-heading"><div><div className="section-kicker">WHERE THE VEHICLE IS</div><h2>Trip timeline</h2></div><span className="trip-status"><span /> {Math.round(trip.progress)}% COMPLETE</span></div>
+          <ol className="timeline">{steps.map((step) => <li key={step.label} className={`timeline-${step.state}`}><span className="timeline-marker">{step.state === 'done' ? <Check size={12} /> : step.state === 'current' ? <Navigation size={11} /> : <MapPin size={11} />}</span><div><strong>{step.label}</strong><span>{step.detail}</span></div></li>)}</ol>
+          <div className="track-driver-row"><div className={`avatar avatar-${ride.color}`}>{ride.initials}</div><div><strong>{ride.driver} <BadgeCheck size={13} /></strong><span><Star size={11} fill="currentColor" /> {ride.rating.toFixed(1)} · {ride.car} · <b>{trip.plate}</b></span></div><span className="request-pill request-accepted"><span /> VERIFIED</span></div>
+          <p className="track-note">Check that the plate and driver match before you get in. The location is simulated in this demo.</p>
+        </section>
+        <aside className="equivalency-card safety-tools">
+          <span className="equivalency-icon"><ShieldCheck size={19} /></span>
+          <div className="section-kicker">SAFETY TOOLS</div>
+          <h3>Travel with peace of mind</h3>
+          <ul className="safety-list">
+            <li><Share2 size={15} /><div><strong>Share live trip</strong><span>Send a live link to friends or family</span></div><button onClick={onShare}>Share</button></li>
+            <li><UsersRound size={15} /><div><strong>Trusted contacts</strong><span>2 contacts get your SOS alerts</span></div></li>
+            <li><Route size={15} /><div><strong>Route deviation alerts</strong><span>Get notified if the car leaves the expected route</span></div><button role="switch" aria-checked={deviationAlerts} className={`toggle ${deviationAlerts ? 'toggle-on' : ''}`} onClick={() => setDeviationAlerts((on) => !on)} aria-label="Route deviation alerts"><i /></button></li>
+            <li><PhoneCall size={15} /><div><strong>Emergency services</strong><span>Kenya: 999 or 112</span></div><a href="tel:112">Call</a></li>
+          </ul>
+          <button className="button track-sos-block" onClick={onSos}><Siren size={16} /> Send SOS alert</button>
+          <button className="text-button" onClick={onFind}>Find another ride <ArrowRight size={14} /></button>
+        </aside>
+      </div>
+    </div>
+  )
 }
 
 function TripsView({ rides, bookedIds, acceptedRideIds, profile, rated, onAccept, onRate }: { rides: Ride[]; bookedIds: number[]; acceptedRideIds: number[]; profile: typeof demoProfiles[DemoProfileId]; rated: boolean; onAccept: (rideId: number) => void; onRate: () => void }) {

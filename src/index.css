@@ -27,6 +27,7 @@ button:disabled { cursor: default; }
 .sidebar { width: 236px; position: fixed; inset: 0 auto 0 0; z-index: 15; padding: 31px 18px 18px; display: flex; flex-direction: column; color: #eaf0e9; background: #173b30; }
 .brand { display: flex; gap: 10px; align-items: center; margin: 0 0 52px 7px; text-decoration: none; color: #fff; font: 800 22px Manrope, sans-serif; letter-spacing: 0; }
 .brand > span:last-child > span { color: #b1cc84; }
+.brand-logo { width: 34px; height: 34px; flex: 0 0 34px; display: block; border-radius: 9px; object-fit: cover; box-shadow: 0 0 0 1px rgba(200,223,159,.35); }
 .brand-mark { width: 31px; height: 31px; display: grid; place-items: center; border-radius: 9px; color: #173b30; background: #c8df9f; }
 .sidebar-label { margin: 0 0 12px 11px; color: #93aa9c; font-size: 10px; font-weight: 700; letter-spacing: 1.4px; }
 .nav-list { display: grid; gap: 5px; }
@@ -353,6 +354,78 @@ h1 { margin-bottom: 5px; font: 800 29px/1.2 Manrope, sans-serif; letter-spacing:
 .toast-check { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; color: #fff; background: #4c875a; }
 .mobile-scrim { display: none; }
 
+
+/* Live trip tracking */
+.tracking-card .impact-card-top { font-size: 8px; }
+.live-pill { display: inline-flex; align-items: center; gap: 5px; margin-left: 4px; padding: 3px 7px; border-radius: 20px; color: #d8ebb6; background: #335d46; font-size: 7px; letter-spacing: .8px; }
+.live-dot { width: 6px; height: 6px; border-radius: 50%; background: #c2df91; box-shadow: 0 0 0 0 rgba(194,223,145,.7); animation: live-pulse 1.6s ease-out infinite; }
+@keyframes live-pulse { 0% { box-shadow: 0 0 0 0 rgba(194,223,145,.7); } 100% { box-shadow: 0 0 0 7px rgba(194,223,145,0); } }
+.track-map { width: 100%; height: auto; margin: 12px 0 8px; display: block; border-radius: 5px; background: #1d4232; }
+.track-map-large { margin: 0; background: #1b3f30; }
+.track-streets path { fill: none; stroke: #2c5642; stroke-width: 7; stroke-linecap: round; }
+.track-route { fill: none; stroke: #5d8668; stroke-width: 3; stroke-dasharray: 5 6; stroke-linecap: round; }
+.track-route-done { fill: none; stroke: #c2df91; stroke-width: 3.5; stroke-linecap: round; }
+.track-origin { fill: #244e3c; stroke: #c2df91; stroke-width: 3; }
+.track-destination path { fill: #f3b98f; stroke: #244e3c; stroke-width: 1.5; }
+.track-car { transition: transform 2.8s linear; }
+.track-car-dot { fill: #fff; stroke: #4c875a; stroke-width: 3; }
+.track-car-pulse { fill: rgba(194,223,145,.28); animation: car-pulse 1.8s ease-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes car-pulse { 0% { transform: scale(.6); opacity: 1; } 100% { transform: scale(1.5); opacity: 0; } }
+.track-label { fill: #d4e3d2; font: 700 11px 'DM Sans', sans-serif; }
+.track-heading { display: grid; gap: 2px; }
+.track-heading span { color: #a9bfad; font-size: 8px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; }
+.track-heading strong { font: 700 13px Manrope, sans-serif; }
+.track-eta { margin: 4px 0 10px; display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; }
+.track-eta .impact-total { margin: 8px 0 0; font-size: 32px; }
+.track-eta-side { display: grid; gap: 3px; color: #c3d1c6; font-size: 9px; text-align: right; }
+.tracking-card .impact-meter span { transition: width 2.8s linear; }
+.track-vehicle { display: flex; align-items: center; gap: 7px; color: #cfddce; font-size: 9px; }
+.track-vehicle strong { color: #fff; }
+.track-verified { margin-left: auto; flex: 0 0 auto; color: #c2df91; }
+.track-actions { margin-top: 11px; display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+.track-actions button { height: 30px; border: 1px solid #54745b; border-radius: 5px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; color: #e2ecdf; background: transparent; cursor: pointer; font-size: 10px; font-weight: 700; }
+.track-actions button:hover { background: #3d664a; }
+.track-actions .track-sos, .track-sos-large, .track-sos-block { border-color: #c95d4b; color: #fff; background: #c4503e; }
+.track-actions .track-sos:hover, .track-sos-large:hover, .track-sos-block:hover { background: #a9412f; }
+.tracking-hero-actions { display: flex; flex-wrap: wrap; gap: 9px; }
+.track-sos-large { border: 1px solid #c95d4b; }
+.tracking-hero-stat { display: grid; align-content: center; }
+.tracking-hero-stat .hero-stat-divider { margin: 13px 0; }
+.timeline { margin: 4px 0 16px; padding: 0; list-style: none; }
+.timeline li { position: relative; padding: 0 0 18px 36px; }
+.timeline li:last-child { padding-bottom: 0; }
+.timeline li::before { content: ''; position: absolute; top: 24px; bottom: 2px; left: 11px; width: 2px; background: #e1e8dc; }
+.timeline li:last-child::before { display: none; }
+.timeline li.timeline-done::before { background: #9cc58a; }
+.timeline-marker { position: absolute; top: 0; left: 0; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; color: #8a978d; background: #eef2ea; }
+.timeline-done .timeline-marker { color: #fff; background: #4c875a; }
+.timeline-current .timeline-marker { color: #244e3c; background: #c2df91; box-shadow: 0 0 0 4px #eef6e2; }
+.timeline li > div { display: grid; gap: 3px; padding-top: 3px; }
+.timeline strong { color: #2f3d34; font-size: 12px; }
+.timeline span { color: #7d897f; font-size: 10px; }
+.track-driver-row { padding: 12px; border: 1px solid #e8ebe4; border-radius: 5px; display: flex; align-items: center; gap: 11px; background: #fafbf7; }
+.track-driver-row > div:nth-child(2) { display: grid; gap: 3px; min-width: 0; }
+.track-driver-row strong { display: inline-flex; align-items: center; gap: 4px; color: #2f3d34; font-size: 12px; }
+.track-driver-row strong svg { color: #4c875a; }
+.track-driver-row span { color: #7d897f; font-size: 10px; }
+.track-driver-row b { color: #2f3d34; letter-spacing: .5px; }
+.track-driver-row .request-pill { margin-left: auto; }
+.track-note { margin: 12px 0 0; color: #909a92; font-size: 9px; line-height: 1.6; }
+.safety-list { margin: 0 0 14px; padding: 0; display: grid; gap: 4px; list-style: none; }
+.safety-list li { padding: 9px 0; border-bottom: 1px solid #eef0ea; display: flex; align-items: center; gap: 10px; color: #4c875a; }
+.safety-list li > div { display: grid; gap: 2px; min-width: 0; }
+.safety-list strong { color: #2f3d34; font-size: 11px; }
+.safety-list span { color: #858f87; font-size: 9px; line-height: 1.45; }
+.safety-list li > button, .safety-list li > a { margin-left: auto; flex: 0 0 auto; padding: 5px 10px; border: 1px solid #d7e3d2; border-radius: 20px; color: #2e513a; background: #fff; cursor: pointer; font-size: 10px; font-weight: 700; text-decoration: none; }
+.safety-list li > button:hover, .safety-list li > a:hover { background: #eef5e9; }
+.safety-list .toggle { width: 34px; height: 20px; padding: 2px; border-radius: 20px; display: flex; background: #d6ddd2; }
+.safety-list .toggle i { width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.2); transition: transform .18s; }
+.safety-list .toggle-on { border-color: #4c875a; background: #4c875a; }
+.safety-list .toggle-on:hover { background: #3f7650; }
+.safety-list .toggle-on i { transform: translateX(14px); }
+.track-sos-block { width: 100%; height: 40px; margin-bottom: 10px; border: 1px solid #c95d4b; justify-content: center; }
+.safety-tools .text-button { width: 100%; justify-content: center; }
+
 @media (max-width: 1120px) {
   .sidebar { width: 210px; }
   .main-area { margin-left: 210px; }
@@ -473,4 +546,12 @@ h1 { margin-bottom: 5px; font: 800 29px/1.2 Manrope, sans-serif; letter-spacing:
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; }
+}
+@media (max-width: 600px) {
+  .tracking-hero-actions .button { flex: 1 1 auto; justify-content: center; }
+  .track-driver-row { flex-wrap: wrap; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .track-car, .tracking-card .impact-meter span { transition: none !important; }
+  .live-dot, .track-car-pulse { animation: none !important; }
 }
